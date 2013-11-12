@@ -2,23 +2,25 @@ module CASClient
   module Frameworks
     module Rails
       class Filter
-        cattr_reader :config, :log, :client, :fake_user, :fake_extra_attributes
+        class << self
+          attr_reader :config, :log, :client, :fake_user, :fake_extra_attributes
+        end
         
         # These are initialized when you call configure.
-        @@config = nil
-        @@client = nil
-        @@log = nil
-        @@fake_user = nil
-        @@fake_extra_attributes = nil
+        @config = nil
+        @client = nil
+        @log = nil
+        @fake_user = nil
+        @fake_extra_attributes = nil
         
         class << self
           def filter(controller)
             raise "Cannot use the CASClient filter because it has not yet been configured." if config.nil?
             
-            if @@fake_user
-              controller.session[client.username_session_key] = @@fake_user
-              controller.session[:casfilteruser] = @@fake_user
-              controller.session[client.extra_attributes_session_key] = @@fake_extra_attributes if @@fake_extra_attributes
+            if @fake_user
+              controller.session[client.username_session_key] = @fake_user
+              controller.session[:casfilteruser] = @fake_user
+              controller.session[client.extra_attributes_session_key] = @fake_extra_attributes if @fake_extra_attributes
               return true
             end
             
@@ -132,10 +134,10 @@ module CASClient
           end
           
           def configure(config)
-            @@config = config
-            @@config[:logger] = ::Rails.logger unless @@config[:logger]
-            @@client = CASClient::Client.new(config)
-            @@log = client.log
+            @config = config
+            @config[:logger] = ::Rails.logger unless @config[:logger]
+            @client = CASClient::Client.new(config)
+            @log = client.log
           end
           
           # used to allow faking for testing
@@ -145,12 +147,12 @@ module CASClient
           # you can also fake extra attributes by including a second parameter
           #  CASClient::Frameworks::Rails::Filter.fake("homer", {:roles => ['dad', 'husband']})
           def fake(username, extra_attributes = nil)
-            @@fake_user = username
-            @@fake_extra_attributes = extra_attributes
+            @fake_user = username
+            @fake_extra_attributes = extra_attributes
           end
           
           def use_gatewaying?
-            @@config[:use_gatewaying]
+            @config[:use_gatewaying]
           end
           
           # Returns the login URL for the current controller. 
@@ -188,7 +190,7 @@ module CASClient
           #   end
           # end
           def login_to_service(controller, credentials, return_path)
-            resp = @@client.login_to_service(credentials, return_path)
+            resp = @client.login_to_service(credentials, return_path)
             if resp.is_failure?
               log.info("Validation failed for service #{return_path.inspect} reason: '#{resp.failure_message}'")
             else
@@ -212,7 +214,7 @@ module CASClient
           def logout(controller, service = nil)
             referer = service || controller.request.referer
             st = controller.session[:cas_last_valid_ticket]
-            @@client.ticket_store.cleanup_service_session_lookup(st) if st
+            @client.ticket_store.cleanup_service_session_lookup(st) if st
             controller.send(:reset_session)
             controller.send(:redirect_to, client.logout_url(referer))
           end
@@ -297,7 +299,7 @@ module CASClient
               
               log.debug "Intercepted single-sign-out request for CAS session #{si.inspect}."
 
-              @@client.ticket_store.process_single_sign_out(si)
+              @client.ticket_store.process_single_sign_out(si)
               
               # Return true to indicate that a single-sign-out request was detected
               # and that further processing of the request is unnecessary.
@@ -345,7 +347,7 @@ module CASClient
 
       class GatewayFilter < Filter
         def self.use_gatewaying?
-          return true unless @@config[:use_gatewaying] == false
+          return true unless @config[:use_gatewaying] == false
         end
       end
     end

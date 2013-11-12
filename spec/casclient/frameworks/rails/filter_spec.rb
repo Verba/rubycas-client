@@ -147,7 +147,7 @@ describe CASClient::Frameworks::Rails::Filter do
         mock_client = CASClient::Client.new()
         mock_client.should_receive(:request_cas_response).at_most(0).times
         mock_client.should_receive(:retrieve_proxy_granting_ticket).at_most(0).times
-        CASClient::Frameworks::Rails::Filter.send(:class_variable_set, :@@client, mock_client)
+        CASClient::Frameworks::Rails::Filter.send(:instance_variable_set, :@client, mock_client)
 
         subject[:cas_last_valid_ticket] = 'bogusticket'
         subject[:cas_last_valid_ticket_service] = 'bogusurl'
